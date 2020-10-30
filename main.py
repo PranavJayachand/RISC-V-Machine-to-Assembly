@@ -2,6 +2,11 @@ import math
 
 scale = 16
 
+def twos_comp(val, bits):
+    """compute the 2's complement of int value val"""
+    if (val & (1 << (bits - 1))) != 0: # if sign bit is set e.g., 8bit: 128-255
+        val = val - (1 << bits)        # compute negative value
+    return val                         # return positive value as is
 
 def registerToName(regNum):
 	if regNum == "00000":
@@ -82,7 +87,7 @@ def converter(binary):
 		return ariI(binary)
 	elif opcode == "0100011":
 		return S(binary)
-	elif opcode == "0110011":
+	elif opcode == "1100011":
 			return B(binary)
 	elif opcode == "0010111":
 			return auipc(binary)
@@ -140,6 +145,8 @@ def ariI(binary):
 	funct3 = binary[17:20]
 	rs1 = binary[12:17]
 	imm = binary[0:12]
+	print(binary)
+	print(imm)
 	print(rs1)
 	print(rd)
 
@@ -165,7 +172,7 @@ def ariI(binary):
 			operation = "ori"
 	elif funct3 == "111":
 			operation = "andi"
-	return '{0} {1}, {2}, {3}'.format(operation, registerToName(rd), registerToName(rs1), int(imm, 2))
+	return '{0} {1}, {2}, {3}'.format(operation, registerToName(rd), registerToName(rs1), twos_comp(int(imm, 2), len(imm)))
 
 def loadI(binary):
 	rd = binary[20:25]
@@ -180,7 +187,7 @@ def loadI(binary):
 	elif funct3 == "010":
 			operation = "lw"
 
-	return '{0} {1}, {3}({2})'.format(operation, registerToName(rd), registerToName(rs1), int(imm, 2))
+	return '{0} {1}, {3}({2})'.format(operation, registerToName(rd), registerToName(rs1), twos_comp(int(imm, 2), len(imm)))
 
 def S(binary):
 	immLow = binary[20:25]
@@ -199,16 +206,17 @@ def S(binary):
 			operation = "sw"
 
 
-	return '{0} {1}, {3}({2})'.format(operation, registerToName(rs2), registerToName(rs1), int(imm, 2))
+	return '{0} {1}, {3}({2})'.format(operation, registerToName(rs2), registerToName(rs1), twos_comp(int(imm, 2), len(imm)))
 
 def B(binary):
+	print("B") 
 	immLow = binary[20:25]
 	funct3 = binary[17:20]
 	rs1 = binary[12:17]
 	rs2 = binary[7:12]
 	immHigh = binary[0:7]
 
-	imm = immHigh[1] + immLow[-1] + immHigh[1:] + immLow[:-1] + "0"
+	imm = immHigh[0] + immLow[-1] + immHigh[1:] + immLow[:-1] + "0"
 
 	if funct3 == "000":
 			operation = "beq"
@@ -223,30 +231,30 @@ def B(binary):
 	elif funct3 == "111":
 			operation = "bgeu"
 
-	return '{0} {1}, {2}, {3}'.format(operation, registerToName(rs1), registerToName(rs2), int(imm, 2))
+	return '{0} {1}, {2}, {3}'.format(operation, registerToName(rs1), registerToName(rs2), twos_comp(int(imm, 2), len(imm)))
 
 def auipc(binary):
 	rd = binary[20:25]
 	imm = binary[:20] + 12*"0"
-	return 'auipc {0}, {1}'.format(rd, int(imm,2))
+	return 'auipc {0}, {1}'.format(rd, twos_comp(int(imm, 2), len(imm)))
 
 def lui(binary):
 	rd = binary[20:25]
 	imm = binary[:20] + 12*"0"
-	return 'lui {0}, {1}'.format(rd, int(imm,2))
+	return 'lui {0}, {1}'.format(rd, twos_comp(int(imm, 2), len(imm)))
 
 def jal(binary):
 	rd = binary[20:25]
 	immScrambled = binary[:20]
 	imm = immScrambled[0] + immScrambled[12:20] + immScrambled[11] + immScrambled[1:11]
-	return 'jal {0}, {1}'.format(rd, int(imm,2))
+	return 'jal {0}, {1}'.format(rd, twos_comp(int(imm, 2), len(imm)))
 
 def jalr(binary):
 	rd = binary[20:25]
 	rs1 = binary[12:17]
 	imm = binary[0:12]
 
-	return 'jalr {0}, {1}, {2}'.format(registerToName(rd), registerToName(rs1), int(imm, 2))
+	return 'jalr {0}, {1}, {2}'.format(registerToName(rd), registerToName(rs1), twos_comp(int(imm, 2), len(imm)))
 
 
 def csrw(binary):
